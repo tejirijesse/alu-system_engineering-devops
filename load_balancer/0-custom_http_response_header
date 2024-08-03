@@ -1,29 +1,20 @@
 #!/usr/bin/env bash
-# Ignore SC2154 for shellcheck
-# shellcheck disable=SC2154
+# Update package list and install Nginx
 
-# Update and install Nginx
-=======
-sudo apt update
-sudo apt install -y nginx
-#!/bin/bash
+sudo apt-get update
+sudo apt-get install -y nginx
 
-# Install Nginx
->>>>>>> f7615c39bcd920b1fe7b0a7bcff15b5f08ae0900
-sudo apt update
-sudo apt install -y nginx
+# Get the hostname
+HOSTNAME=$(hostname)
 
-# Configure Nginx to add custom header
-sudo sed -i '/server_name _;/a \        location / {\n            add_header X-Served-By $hostname;\n        }' /etc/nginx/sites-available/default
+# Create a backup of the original Nginx config file
+sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.backup
 
-# Restart Nginx to apply changes
+# Add the custom header configuration to the Nginx config file
+sudo sed -i '/http {/a \\tproxy_set_header X-Served-By $HOSTNAME;' /etc/nginx/nginx.conf
+
+# Restart Nginx to apply the changes
 sudo systemctl restart nginx
 
-echo "Nginx configured with custom header on $(hostname)"
-
-=======
-sudo sed -i '/http {/a \    server {\n        location / {\n            add_header X-Served-By \$hostname;\n        }\n    }' /etc/nginx/nginx.conf
-
-# Restart Nginx to apply changes
-sudo systemctl restart nginx
->>>>>>> f7615c39bcd920b1fe7b0a7bcff15b5f08ae0900
+# Print success message
+echo "Nginx is configured on $HOSTNAME with the custom header X-Served-By"
