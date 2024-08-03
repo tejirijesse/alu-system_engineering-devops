@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Ignore SC2154 for shellcheck
+# shellcheck disable=SC2154
+
+# Update and install Nginx
+sudo apt update
+sudo apt install -y nginx
+
+# Configure Nginx to add custom header
+sudo sed -i '/server_name _;/a \        location / {\n            add_header X-Served-By $hostname;\n        }' /etc/nginx/sites-available/default
+
+# Restart Nginx to apply changes
+sudo systemctl restart nginx
+
+echo "Nginx configured with custom header on $(hostname)"
+
