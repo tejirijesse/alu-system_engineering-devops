@@ -1,32 +1,14 @@
 #!/usr/bin/env bash
-# Update package list and install Nginx
+# configure server with nginx and add header
 
-sudo apt-get update
-sudo apt-get install -y nginx
-
-# Get the hostname
-HOSTNAME=$(hostname)
-
-# Create a backup of the original Nginx config file
-sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.backup
-
-# Create a new Nginx configuration with the custom header
-cat <<EOL | sudo tee /etc/nginx/sites-available/default
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-
-    server_name _;
-
-    location / {
-        add_header X-Served-By $HOSTNAME;
-        try_files \$uri \$uri/ =404;
-    }
-}
-EOL
-
-# Restart Nginx to apply the changes
-sudo systemctl restart nginx
-
-# Print success message
-echo "Nginx is configured on $HOSTNAME with the custom header X-Served-By"
+sudo apt-get -y update
+sudo apt-get -y install nginx
+echo "Holberton School" | sudo tee /var/www/html/index.html
+echo "Ceci n'est pas une page" | sudo tee /var/www/html/custom_404.html
+REDIRECT_301="\\\trewrite ^/redirect_me https://google.com permanent;"
+sudo sed -i "41i $REDIRECT_301" /etc/nginx/sites-available/default
+REDIRECT_404="\\\terror_page 404 /custom_404.html;\n\tlocation = /custom_404.html {\n\t\troot /var/www/html;\n\t\tinternal;\n\t}\n"
+sudo sed -i "44i $REDIRECT_404" /etc/nginx/sites-available/default
+ADD_HEADER="\\\tadd_header X-Served-By $HOSTNAME;"
+sudo sed -i "27i $ADD_HEADER" /etc/nginx/sites-available/default
+sudo service nginx start
