@@ -1,82 +1,16 @@
 #!/usr/bin/env bash
-#Ensure the script is run as root
+#loadbalancer
 
-if [ "$EUID" -ne 0 ]; then
-  echo "Please run as root"
-  exit
-fi
-
-# Update the package list and install HAProxy
-apt update
-apt install -y haproxy
-
-# Define the HAProxy configuration
-cat <<EOL > /etc/haproxy/haproxy.cfg
-global
-    log /dev/log local0
-    log /dev/log local1 notice
-    chroot /var/lib/haproxy
-    stats socket /run/haproxy/admin.sock mode 660 level admin
-    stats timeout 30s
-    user haproxy
-    group haproxy
-    daemon
-
-defaults
-    log     global
-    mode    http
-    option  httplog
-    option  dontlognull
-    timeout connect 5000
-    timeout client  50000
-    timeout server  50000
-    errorfile 400 /etc/haproxy/errors/400.http
-    errorfile 403 /etc/haproxy/errors/403.http
-    errorfile 408 /etc/haproxy/errors/408.http
-    errorfile 500 /etc/haproxy/errors/500.http
-    errorfile 502 /etc/haproxy/errors/502.http
-    errorfile 503 /etc/haproxy/errors/503.http
-    errorfile 504 /etc/haproxy/errors/504.http
-
-frontend http_front
-    bind *:80
-    stats uri /haproxy?stats
-    default_backend http_back
-
-backend http_back
-    balance roundrobin
-    server web-01 54.234.37.12:80 check
-    server web-02 54.145.21.88:80 check
-EOL
-
-# Restart HAProxy to apply the new configuration
-systemctl restart haproxy
-
-# Enable HAProxy to start on boot
-systemctl enable haproxy
-
-# Test the configuration
-if systemctl status haproxy | grep -q "active (running)"; then
-  echo "HAProxy setup successful and running."
-else
-  echo "Failed to start HAProxy."
-  exit 1
-fi
-
-# Test the load balancing
-response1=$(curl -Is http://localhost | grep X-Served-By)
-response2=$(curl -Is http://localhost | grep X-Served-By)
-
-echo "First response: $response1"
-echo "Second response: $response2"
-
-# Check if responses contain web-01 and web-02
-if [[ "$response1" == *"web-01"* ]] && [[ "$response2" == *"web-02"* ]]; then
-  echo "Both web-01 and web-02 are serving traffic as expected."
-else
-  echo "Error: Responses do not contain expected values."
-  echo "Response 1: $response1"
-  echo "Response 2: $response2"
-  exit 1
-fi
-
+sudo apt update -y
+sudo apt install haproxy -y
+echo 'ENABLED=1' | sudo tee -a /etc/default/haproxy
+printf %s 'backend web-backend
+        balance roundrobin
+        server 4826-web-01 52.91.59.143:80 check
+        server 4826-web-02 54.90.160.55:80 check
+frontend http
+        bind *:80
+        mode http
+        default_backend web-backend
+' | sudo tee -a /etc/haproxy/haproxy.cfg
+sudo service haproxy restart
